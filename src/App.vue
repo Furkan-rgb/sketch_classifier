@@ -115,7 +115,7 @@
       <p>
         After building the model with <code>build_model()</code>, I compile it
         using <code>Adam</code> and <code>SparseCategoricalCrossentropy</code>.
-        I then fit the model on our <strong>training dataset</strong> for a
+        I then fit the model on the <strong>training dataset</strong> for a
         specified number of epochs and evaluate on a
         <strong>test dataset</strong>
         to measure accuracy. Finally, I export the model in
@@ -206,10 +206,6 @@ export default {
 
     const probabilities = ref([]);
     const predictedLabel = ref("");
-
-    // We'll inject your training code snippet as a computed property
-    // so it can be displayed in the <pre><code> block below.
-    // (Alternatively, you could store it as a plain string.)
     const trainingCodeSnippet = computed(() => {
       return `
 import os
@@ -261,14 +257,12 @@ def chunked_generator(
     # ...
     # see the generator logic for balanced, chunked data
     # ...
-    pass
 
 ########################################
 # GET TF.DATA DATASET
 ########################################
 def get_chunked_dataset(...):
     # ...
-    pass
 
 ########################################
 # TRAINING ENTRY POINT
@@ -325,7 +319,7 @@ if __name__ == "__main__":
 
       try {
         // Load the model (check your path)
-        model = await tf.loadLayersModel("/tfjs_model/model.json");
+        model = await tf.loadLayersModel("tfjs_model/model.json");
         console.log("Model loaded:", model);
       } catch (error) {
         console.error("Error loading model:", error);
