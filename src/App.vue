@@ -1,7 +1,16 @@
 <template>
   <div class="container">
     <h2>QuickDraw Classifier (Single Output)</h2>
-    <p>Draw a doodle in the canvas and see the CNN's prediction.</p>
+    <p>
+      Draw a
+      <span class="tooltip-trigger"
+        >doodle
+        <span class="tooltip-content">
+          Available categories: {{ labels.join(", ") }}
+        </span>
+      </span>
+      in the canvas and see the CNN's prediction.
+    </p>
 
     <div class="main-layout">
       <!-- LEFT COLUMN: Canvas + Clear Button -->
@@ -583,5 +592,47 @@ if __name__ == "__main__":
   white-space: pre-wrap;
   border-radius: 4px;
   overflow-x: auto;
+}
+
+/* Tooltip styling */
+.tooltip-trigger {
+  position: relative;
+  border-bottom: 1px dashed #999;
+  cursor: help;
+}
+
+.tooltip-content {
+  visibility: hidden;
+  width: 250px;
+  background-color: #555;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 8px;
+  position: absolute;
+  z-index: 1;
+  top: 125%;
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0;
+  transition: opacity 0.3s, visibility 0.3s;
+  font-size: 0.9em;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.tooltip-content::after {
+  content: "";
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: #555 transparent transparent transparent;
+}
+
+.tooltip-trigger:hover .tooltip-content {
+  visibility: visible;
+  opacity: 1;
 }
 </style>
