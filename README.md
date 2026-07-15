@@ -1,6 +1,6 @@
 # QuickDraw Sketch Classifier
 
-A browser-based doodle classifier powered by a custom 36-class convolutional
+A browser-based doodle classifier powered by a custom 100-class convolutional
 neural network trained on Google’s [Quick, Draw! dataset](https://quickdraw.withgoogle.com/data).
 Draw with a mouse or touchscreen and watch the model rank its predictions in
 real time.
@@ -36,21 +36,37 @@ labels shown in the interface.
 
 ## Model architecture
 
-The currently bundled model uses:
-
 ```text
 28 × 28 × 1 input
-  → Conv2D(64) × 2 → BatchNorm → MaxPool
-  → Conv2D(128) × 2 → BatchNorm → MaxPool
+  → [Conv2D(48, 3×3) → BatchNorm → ReLU] × 2 → MaxPool
+  → [Conv2D(96, 3×3) → BatchNorm → ReLU] × 2 → MaxPool
+  → [Conv2D(192, 3×3) → BatchNorm → ReLU] × 2
   → Global Average Pooling
-  → Dropout(0.3)
-  → Dense(36 logits)
+  → Dense(128, ReLU) → Dropout(0.35)
+  → Dense(100 logits)
 ```
 
-The included training pipeline defines the next iteration as three feature
-blocks (`48 → 96 → 192`), a 128-unit embedding, 35% dropout, and the same
-36-class logits output. Training-only augmentation is not exported to the
-browser model.
+Design rationale, given the constraint that the model must download and run in
+the browser:
+
+- **Stacked 3 × 3 convolutions** — two per block give the receptive field of a
+  5 × 5 kernel with fewer parameters and an extra non-linearity.
+- **Widening blocks (48 → 96 → 192) with pooling** — spatial resolution is
+  traded for channel depth as features grow from strokes to shapes to objects.
+- **Batch normalization, no conv biases** — stabilizes training at a learning
+  rate of `1e-3`; biases are redundant directly before normalization.
+- **Global average pooling instead of flattening** — collapses each feature map
+  to one value, cutting the usual dense-layer parameter bulk and much of the
+  overfitting risk.
+- **128-unit embedding with 35% dropout** — a small mixing layer between pooled
+  features and the classifier, regularized because it is the layer most prone
+  to memorization.
+- **Raw logits output** — softmax is applied in the browser, so exported
+  weights stay loss-function agnostic.
+
+Geometric and stroke-width augmentation wrap the classifier only during
+training; the exported browser model contains none of it. The result is
+roughly 684k parameters — about 2.6 MB of float32 weights.
 
 ## Training pipeline
 
@@ -60,7 +76,7 @@ loading, augmenting, training, evaluation, and TensorFlow.js export. It includes
 - Seeded, non-overlapping 70/15/15 train, validation, and test splits
 - Balanced loading from memory-mapped NumPy files
 - Restrained translation, rotation, zoom, dilation, and erosion
-- Up to 30 epochs with early stopping and learning-rate reduction
+- Up to 50 epochs with early stopping and learning-rate reduction
 - Top-1 and top-3 accuracy, macro/per-class recall, and confusion matrices
 - Safe model export with an ordered `class_names.json` contract
 
@@ -95,13 +111,28 @@ exports the browser model directly to `public/tfjs_model/`.
 ## Supported classes
 
 <details>
-<summary>View all 36 categories</summary>
+<summary>View all 100 categories</summary>
 
-`circle`, `square`, `triangle`, `star`, `line`, `cup`, `clock`, `chair`,
-`book`, `laptop`, `cell phone`, `key`, `umbrella`, `car`, `cat`, `dog`,
-`bird`, `fish`, `tree`, `flower`, `sun`, `cloud`, `eye`, `hand`, `face`,
-`smiley face`, `scissors`, `pencil`, `hammer`, `guitar`, `bicycle`,
-`airplane`, `sailboat`, `apple`, `banana`, and `pizza`.
+- **Shapes:** `circle`, `square`, `triangle`, `star`, `line`, `hexagon`,
+  `diamond`, `zigzag`
+- **Everyday objects:** `cup`, `clock`, `chair`, `book`, `laptop`,
+  `cell phone`, `key`, `umbrella`, `table`, `bed`, `door`, `light bulb`,
+  `ladder`, `envelope`
+- **Clothing:** `hat`, `shoe`, `sock`, `t-shirt`, `pants`, `eyeglasses`
+- **Animals:** `cat`, `dog`, `bird`, `fish`, `elephant`, `giraffe`, `horse`,
+  `cow`, `pig`, `rabbit`, `monkey`, `lion`, `duck`, `owl`, `penguin`, `frog`,
+  `snake`, `spider`, `butterfly`, `whale`
+- **Nature:** `tree`, `flower`, `sun`, `cloud`, `moon`, `mountain`, `rainbow`,
+  `lightning`, `snowflake`, `cactus`, `mushroom`, `leaf`
+- **People & features:** `eye`, `hand`, `face`, `smiley face`, `ear`, `nose`,
+  `mouth`, `tooth`
+- **Tools & music:** `scissors`, `pencil`, `hammer`, `guitar`, `axe`, `saw`,
+  `screwdriver`, `piano`
+- **Transport:** `car`, `bicycle`, `airplane`, `sailboat`, `bus`, `truck`,
+  `train`, `helicopter`, `hot air balloon`, `motorbike`
+- **Food:** `apple`, `banana`, `pizza`, `grapes`, `strawberry`, `watermelon`,
+  `carrot`, `ice cream`, `donut`, `hamburger`
+- **Buildings & landmarks:** `house`, `castle`, `bridge`, `lighthouse`
 
 </details>
 

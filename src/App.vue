@@ -120,7 +120,7 @@
               <p><strong>Local inference</strong><small>TensorFlow.js</small></p>
             </div>
             <div>
-              <span class="fact-icon">36</span>
+              <span class="fact-icon">100</span>
               <p><strong>Categories</strong><small>Balanced training</small></p>
             </div>
             <div>
@@ -128,7 +128,7 @@
               <p><strong>28 × 28 input</strong><small>Grayscale bitmap</small></p>
             </div>
             <div>
-              <span class="fact-icon">≈1</span>
+              <span class="fact-icon">≈3</span>
               <p><strong>MB model</strong><small>Browser-ready</small></p>
             </div>
           </div>

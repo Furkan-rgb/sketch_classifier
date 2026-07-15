@@ -6,8 +6,9 @@
         <h2 id="known-categories-title">What can I draw?</h2>
       </div>
       <p>
-        The classifier only knows these 36 doodles. Pick one for a prompt, or
-        draw anything and see which known shape it resembles.
+        The classifier only knows these {{ categories.length }} doodles. Pick
+        one for a prompt, or draw anything and see which known shape it
+        resembles.
       </p>
     </div>
 
@@ -41,7 +42,7 @@
 </template>
 
 <script setup>
-import { categoryGroups } from "../data/categories";
+import { categories, categoryGroups } from "../data/categories";
 
 defineProps({
   selectedCategory: { type: String, default: "" },

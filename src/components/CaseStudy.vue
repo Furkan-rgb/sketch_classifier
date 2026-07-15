@@ -4,7 +4,7 @@
       <span class="eyebrow">Under the hood</span>
       <h2 id="case-study-title">From a rough line to a ranked prediction.</h2>
       <p>
-        A compact convolutional neural network turns each sketch into one of 36
+        A compact convolutional neural network turns each sketch into one of 100
         familiar objects—all without sending the drawing to a server.
       </p>
     </div>
@@ -34,7 +34,7 @@
           <span></span><span></span><span></span><span></span><span></span>
         </div>
         <h3>Classify</h3>
-        <p>Convolution blocks extract shapes before a 36-class output layer.</p>
+        <p>Convolution blocks extract shapes before a 100-class output layer.</p>
       </article>
       <span class="pipeline-arrow" aria-hidden="true">→</span>
       <article class="pipeline-step">
@@ -72,7 +72,7 @@
           <div><span>Feature blocks</span><strong>48 → 96 → 192</strong></div>
           <div><span>Pooling</span><strong>Global average</strong></div>
           <div><span>Regularization</span><strong>35% dropout</strong></div>
-          <div><span>Output</span><strong>36 logits</strong></div>
+          <div><span>Output</span><strong>100 logits</strong></div>
         </div>
       </article>
 
@@ -90,7 +90,7 @@
         <span class="eyebrow">Honest limitations</span>
         <h3>A proof of concept, with a clear next step.</h3>
         <p>
-          The model only recognizes its 36 training categories and can sound
+          The model only recognizes its 100 training categories and can sound
           confident about unfamiliar drawings. The training run now records
           top-3 accuracy, per-class recall and confusion matrices so those
           failure cases can be measured instead of guessed at.

@@ -81,11 +81,16 @@ MINIMUM_LEARNING_RATE = 1e-6
 
 # The order is the semantic contract for the classifier's output neurons.
 CATEGORIES = [
+    # Shapes
     "circle",
     "square",
     "triangle",
     "star",
     "line",
+    "hexagon",
+    "diamond",
+    "zigzag",
+    # Everyday objects
     "cup",
     "clock",
     "chair",
@@ -94,29 +99,98 @@ CATEGORIES = [
     "cell phone",
     "key",
     "umbrella",
-    "car",
+    "table",
+    "bed",
+    "door",
+    "light bulb",
+    "ladder",
+    "envelope",
+    # Clothing
+    "hat",
+    "shoe",
+    "sock",
+    "t-shirt",
+    "pants",
+    "eyeglasses",
+    # Animals
     "cat",
     "dog",
     "bird",
     "fish",
+    "elephant",
+    "giraffe",
+    "horse",
+    "cow",
+    "pig",
+    "rabbit",
+    "monkey",
+    "lion",
+    "duck",
+    "owl",
+    "penguin",
+    "frog",
+    "snake",
+    "spider",
+    "butterfly",
+    "whale",
+    # Nature
     "tree",
     "flower",
     "sun",
     "cloud",
+    "moon",
+    "mountain",
+    "rainbow",
+    "lightning",
+    "snowflake",
+    "cactus",
+    "mushroom",
+    "leaf",
+    # People & features
     "eye",
     "hand",
     "face",
     "smiley face",
+    "ear",
+    "nose",
+    "mouth",
+    "tooth",
+    # Tools & music
     "scissors",
     "pencil",
     "hammer",
     "guitar",
+    "axe",
+    "saw",
+    "screwdriver",
+    "piano",
+    # Transport
+    "car",
     "bicycle",
     "airplane",
     "sailboat",
+    "bus",
+    "truck",
+    "train",
+    "helicopter",
+    "hot air balloon",
+    "motorbike",
+    # Food
     "apple",
     "banana",
     "pizza",
+    "grapes",
+    "strawberry",
+    "watermelon",
+    "carrot",
+    "ice cream",
+    "donut",
+    "hamburger",
+    # Buildings & landmarks
+    "house",
+    "castle",
+    "bridge",
+    "lighthouse",
 ]
 
 
@@ -393,7 +467,7 @@ def convolution_block(inputs, filters, name, pool=True):
 
 
 def build_classifier(num_classes):
-    """A compact three-block CNN with more capacity than the original model."""
+    """A compact three-block CNN."""
     inputs = layers.Input(
         shape=(IMAGE_SIZE, IMAGE_SIZE, CHANNELS),
         name="bitmap_input",
