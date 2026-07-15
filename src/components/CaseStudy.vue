@@ -57,11 +57,36 @@
           memory-maps each class, keeps its splits separate, and streams balanced
           mini-batches to Keras.
         </p>
-        <ul class="feature-list">
-          <li><span>✓</span> Repeatable train, validation and test splits</li>
-          <li><span>✓</span> Restrained drawing augmentation</li>
-          <li><span>✓</span> Memory-mapped NumPy files</li>
-        </ul>
+        <ol class="training-flow">
+          <li>
+            <span>01</span>
+            <p><strong>Load</strong> — memory-map one NumPy bitmap file per class</p>
+          </li>
+          <li>
+            <span>02</span>
+            <p><strong>Split</strong> — seeded, disjoint 70/15/15 train/validation/test</p>
+          </li>
+          <li>
+            <span>03</span>
+            <p><strong>Stream</strong> — balanced batches; a rolling per-epoch window per class</p>
+          </li>
+          <li>
+            <span>04</span>
+            <p><strong>Augment</strong> — shift, rotate, zoom and stroke width, training only</p>
+          </li>
+          <li>
+            <span>05</span>
+            <p><strong>Train</strong> — early stopping, LR halving, best weights restored</p>
+          </li>
+          <li>
+            <span>06</span>
+            <p><strong>Evaluate</strong> — top-1/top-3, per-class recall, confusion matrices</p>
+          </li>
+          <li>
+            <span>07</span>
+            <p><strong>Export</strong> — TensorFlow.js model + ordered class_names.json</p>
+          </li>
+        </ol>
       </article>
 
       <article class="story-card architecture-card">
