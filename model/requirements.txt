@@ -1,9 +1,12 @@
 # Use Python 3.11. These versions keep TensorFlow, legacy TF-Keras, and the
 # TensorFlow.js converter on a mutually compatible release line.
-tensorflow==2.18.0
+tensorflow[and-cuda]==2.18.0
 tf-keras==2.18.0
 tensorflowjs==4.22.0
 tensorflow-decision-forests==1.11.0
+# Newer ydf releases ship protobuf 6.x gencode, incompatible with the
+# protobuf 5.x runtime required by TensorFlow 2.18.
+ydf==0.9.0
 
 # Pin TensorFlow.js converter dependencies that otherwise resolve to newer,
 # TensorFlow-incompatible JAX releases.
