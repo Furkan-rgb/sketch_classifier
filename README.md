@@ -191,9 +191,7 @@ contract, and UI category coverage before building the application.
 
 ## Deployment
 
-The Vite base path is configured for `/sketch_classifier/`. Publish `dist/` to
-the `gh-pages` branch with:
-
-```sh
-npm run deploy
-```
+Every push to `main` is deployed automatically: the
+[GitHub Actions workflow](.github/workflows/deploy.yml) validates the model
+contract, builds the site, and publishes it to GitHub Pages. The Vite base
+path is configured for `/sketch_classifier/`.
