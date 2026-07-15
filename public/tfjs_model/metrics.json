@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "dataset": "Google Quick, Draw! 28x28 bitmap",
+  "split": {
+    "type": "deterministic held-out test subset",
+    "seed": 2026,
+    "classCount": 100,
+    "samplesPerClass": 5000,
+    "sampleCount": 500000
+  },
+  "metrics": {
+    "loss": 0.4826714098453522,
+    "top1Accuracy": 0.8709579706192017,
+    "top3Accuracy": 0.9535099864006042,
+    "macroRecall": 0.8709579706192017
+  }
+}

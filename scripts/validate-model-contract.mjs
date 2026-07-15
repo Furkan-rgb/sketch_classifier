@@ -12,6 +12,9 @@ const model = JSON.parse(
 const contract = JSON.parse(
   fs.readFileSync(path.join(modelDirectory, "class_names.json"), "utf8"),
 );
+const evaluation = JSON.parse(
+  fs.readFileSync(path.join(modelDirectory, "metrics.json"), "utf8"),
+);
 
 function fail(message) {
   throw new Error(`Model contract validation failed: ${message}`);
@@ -60,11 +63,11 @@ if (
   );
 }
 if (
-  contract.input?.source !== "full-canvas" ||
+  contract.input?.source !== "bounding-box-centered" ||
   contract.input?.foreground !== 1 ||
   contract.input?.background !== 0
 ) {
-  fail("the frontend requires a full-canvas, ink-as-one input contract.");
+  fail("the frontend requires a centered-bounds, ink-as-one input contract.");
 }
 
 const displayedSet = new Set(categories);
@@ -81,6 +84,31 @@ if (missingFromUi.length || notTrained.length) {
   );
 }
 
+const evaluationMetrics = evaluation.metrics;
+const evaluationSplit = evaluation.split;
+if (
+  evaluationSplit?.classCount !== classNames.length ||
+  !Number.isInteger(evaluationSplit?.samplesPerClass) ||
+  evaluationSplit.samplesPerClass <= 0 ||
+  evaluationSplit?.sampleCount !==
+    classNames.length * evaluationSplit.samplesPerClass
+) {
+  fail("metrics.json has an incompatible evaluation split.");
+}
+for (const name of ["top1Accuracy", "top3Accuracy", "macroRecall"]) {
+  const value = evaluationMetrics?.[name];
+  if (typeof value !== "number" || value < 0 || value > 1) {
+    fail(`metrics.json has an invalid ${name}.`);
+  }
+}
+if (
+  typeof evaluationMetrics?.loss !== "number" ||
+  evaluationMetrics.loss < 0 ||
+  evaluationMetrics.top3Accuracy < evaluationMetrics.top1Accuracy
+) {
+  fail("metrics.json has invalid loss or accuracy ordering.");
+}
+
 console.log(
-  `Model contract valid: ${outputUnits} outputs, ${classNames.length} ordered labels, and complete UI coverage.`,
+  `Model contract valid: ${outputUnits} outputs, ${classNames.length} ordered labels, complete UI coverage, and published evaluation metrics.`,
 );

@@ -8,7 +8,7 @@ This is the single training entry point for the project. It:
 3. trains with restrained geometric and stroke-width augmentation;
 4. uses early stopping, learning-rate reduction, and best-weight restoration;
 5. reports top-1/top-3 accuracy, confusion matrices, and per-class recall; and
-6. exports the TensorFlow.js model and its ordered ``class_names.json`` contract.
+6. exports the TensorFlow.js model, ordered class contract, and test metrics.
 
 Run from any directory with:
 
@@ -573,6 +573,8 @@ def create_evaluation_reports(classifier, test_sequence, test_metrics):
     for key, value in serializable_metrics.items():
         print(f"  {key}: {value:.4f}")
 
+    return serializable_metrics
+
 
 def plot_confusion_matrices(confusion, normalized_confusion):
     figure, axes = plt.subplots(1, 2, figsize=(24, 10), constrained_layout=True)
@@ -607,7 +609,7 @@ def plot_per_class_recall(recall):
 ###############################################################################
 # EXPORT
 ###############################################################################
-def export_model(classifier):
+def export_model(classifier, evaluation_metrics):
     staging_directory = TRAINING_OUTPUT_DIRECTORY / "tfjs_export"
     if staging_directory.exists():
         shutil.rmtree(staging_directory)
@@ -626,7 +628,7 @@ def export_model(classifier):
             "range": [0, 1],
             "foreground": 1,
             "background": 0,
-            "source": "full-canvas",
+            "source": "bounding-box-centered",
         },
     }
     with (staging_directory / "class_names.json").open(
@@ -636,8 +638,37 @@ def export_model(classifier):
         json.dump(contract, file, indent=2)
         file.write("\n")
 
+    published_metrics = {
+        "schemaVersion": 1,
+        "dataset": "Google Quick, Draw! 28x28 bitmap",
+        "split": {
+            "type": "deterministic held-out test subset",
+            "seed": SEED,
+            "classCount": len(CATEGORIES),
+            "samplesPerClass": TEST_SAMPLES_PER_CLASS,
+            "sampleCount": len(CATEGORIES) * TEST_SAMPLES_PER_CLASS,
+        },
+        "metrics": {
+            "loss": evaluation_metrics["loss"],
+            "top1Accuracy": evaluation_metrics["accuracy"],
+            "top3Accuracy": evaluation_metrics["top_3_accuracy"],
+            "macroRecall": evaluation_metrics["macro_recall"],
+        },
+    }
+    with (staging_directory / "metrics.json").open(
+        "w",
+        encoding="utf-8",
+    ) as file:
+        json.dump(published_metrics, file, indent=2)
+        file.write("\n")
+
     MODEL_OUTPUT_DIRECTORY.mkdir(parents=True, exist_ok=True)
-    for pattern in ("model.json", "group*-shard*of*.bin", "class_names.json"):
+    for pattern in (
+        "model.json",
+        "group*-shard*of*.bin",
+        "class_names.json",
+        "metrics.json",
+    ):
         for path in MODEL_OUTPUT_DIRECTORY.glob(pattern):
             path.unlink()
     for artifact in staging_directory.iterdir():
@@ -762,8 +793,12 @@ def main():
         return_dict=True,
         verbose=1,
     )
-    create_evaluation_reports(classifier, test_sequence, test_metrics)
-    export_model(classifier)
+    evaluation_metrics = create_evaluation_reports(
+        classifier,
+        test_sequence,
+        test_metrics,
+    )
+    export_model(classifier, evaluation_metrics)
 
 
 if __name__ == "__main__":

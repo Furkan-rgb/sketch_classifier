@@ -112,6 +112,6 @@
     ],
     "foreground": 1,
     "background": 0,
-    "source": "full-canvas"
+    "source": "bounding-box-centered"
   }
 }

@@ -24,15 +24,17 @@ or image upload is required.
 ## How inference works
 
 1. Pointer strokes are recorded on an `800 × 800` backing canvas.
-2. The complete drawing area is resized to `28 × 28` pixels.
+2. The drawing's bounding box is cropped, scaled without distortion, and
+   centered in a `28 × 28` image with a one-pixel margin, matching the layout
+   of the Quick, Draw! bitmap dataset.
 3. Pixels are inverted and normalized so ink is `1` and the background is `0`.
 4. The resulting tensor is passed to the TensorFlow.js model.
 5. Logits are converted to probabilities and the five most likely classes are
    displayed.
 
-The model and its ordered `class_names.json` file are loaded together. Runtime
-and build-time checks ensure that model outputs cannot silently drift from the
-labels shown in the interface.
+The ordered `class_names.json` file defines how output neurons map to labels.
+Runtime and build-time checks verify compatible input/output shapes and complete
+UI category coverage.
 
 ## Model architecture
 
@@ -117,7 +119,7 @@ have not implemented or benchmarked that alternative.
 Geometric and stroke-width augmentation wrap the classifier only during
 training; the exported browser model contains none of it. The result is a
 task-specific arrangement of established CNN building blocks with roughly 684k
-parameters — about 2.6 MB of float32 weights.
+parameters — about 2.6 MiB (2.7 MB) of float32 weights.
 
 ## Training pipeline
 
@@ -157,7 +159,25 @@ python model/train.py
 ```
 
 Training reports are written to `model/training_artifacts/`. A successful run
-exports the browser model directly to `public/tfjs_model/`.
+exports the browser model and its measured test results directly to
+`public/tfjs_model/`.
+
+### Exported model results
+
+The currently exported weights were evaluated on the pipeline's deterministic,
+held-out test subset: 5,000 drawings per class, or 500,000 drawings in total.
+
+| Metric | Result |
+| --- | ---: |
+| Top-1 accuracy | **87.10%** |
+| Top-3 accuracy | **95.35%** |
+| Macro recall | **87.10%** |
+
+Macro recall equals top-1 accuracy here because every class contributes the
+same number of test examples. These results apply to the exported model in this
+repository and are stored in
+[`public/tfjs_model/metrics.json`](public/tfjs_model/metrics.json). Each
+successful training run regenerates that file alongside the model weights.
 
 ## Supported classes
 

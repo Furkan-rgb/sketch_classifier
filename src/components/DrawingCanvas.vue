@@ -79,6 +79,10 @@ const props = defineProps({
 
 const emit = defineEmits(["predict", "cleared", "shuffle"]);
 
+const MODEL_SIZE = 28;
+const MODEL_MARGIN = 1;
+const DRAWING_RED_CHANNEL = 0x17;
+
 const canvas = ref(null);
 const hasDrawing = ref(false);
 const isDrawing = ref(false);
@@ -90,8 +94,8 @@ let context = null;
 let activeStroke = null;
 let predictionTimer = null;
 const modelCanvas = document.createElement("canvas");
-modelCanvas.width = 28;
-modelCanvas.height = 28;
+modelCanvas.width = MODEL_SIZE;
+modelCanvas.height = MODEL_SIZE;
 const modelContext = modelCanvas.getContext("2d", { willReadFrequently: true });
 
 onMounted(() => {
@@ -214,30 +218,78 @@ function clear() {
   emit("cleared");
 }
 
+function getDrawingBounds() {
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+
+  for (const stroke of strokes) {
+    for (const point of stroke) {
+      minX = Math.min(minX, point.x);
+      minY = Math.min(minY, point.y);
+      maxX = Math.max(maxX, point.x);
+      maxY = Math.max(maxY, point.y);
+    }
+  }
+
+  if (!Number.isFinite(minX)) return null;
+
+  // Include the full round stroke plus a small allowance for antialiasing.
+  const strokePadding = context.lineWidth / 2 + 2;
+  const left = Math.max(0, Math.floor(minX - strokePadding));
+  const top = Math.max(0, Math.floor(minY - strokePadding));
+  const right = Math.min(canvas.value.width, Math.ceil(maxX + strokePadding));
+  const bottom = Math.min(canvas.value.height, Math.ceil(maxY + strokePadding));
+
+  return {
+    x: left,
+    y: top,
+    width: Math.max(1, right - left),
+    height: Math.max(1, bottom - top),
+  };
+}
+
 function createModelInput() {
-  // Quick Draw bitmaps represent the complete drawing area at 28×28. Keep the
-  // browser path identical: resize the complete canvas, then encode ink as 1
-  // and the background as 0. Positional tolerance is learned via augmentation.
+  // Quick Draw bitmaps center each drawing's bounding box. Mirror that layout:
+  // crop the ink bounds, preserve aspect ratio, and leave a one-pixel margin.
+  const bounds = getDrawingBounds();
+  if (!bounds) return null;
+
   modelContext.fillStyle = "#fff";
-  modelContext.fillRect(0, 0, 28, 28);
+  modelContext.fillRect(0, 0, MODEL_SIZE, MODEL_SIZE);
   modelContext.imageSmoothingEnabled = true;
   modelContext.imageSmoothingQuality = "high";
+
+  const availableSize = MODEL_SIZE - MODEL_MARGIN * 2;
+  const scale = Math.min(
+    availableSize / bounds.width,
+    availableSize / bounds.height,
+  );
+  const targetWidth = bounds.width * scale;
+  const targetHeight = bounds.height * scale;
+  const targetX = (MODEL_SIZE - targetWidth) / 2;
+  const targetY = (MODEL_SIZE - targetHeight) / 2;
+
   modelContext.drawImage(
     canvas.value,
-    0,
-    0,
-    canvas.value.width,
-    canvas.value.height,
-    0,
-    0,
-    28,
-    28,
+    bounds.x,
+    bounds.y,
+    bounds.width,
+    bounds.height,
+    targetX,
+    targetY,
+    targetWidth,
+    targetHeight,
   );
 
-  const pixels = modelContext.getImageData(0, 0, 28, 28).data;
-  const input = new Float32Array(28 * 28);
+  const pixels = modelContext.getImageData(0, 0, MODEL_SIZE, MODEL_SIZE).data;
+  const input = new Float32Array(MODEL_SIZE * MODEL_SIZE);
   for (let index = 0; index < input.length; index += 1) {
-    input[index] = (255 - pixels[index * 4]) / 255;
+    input[index] = Math.min(
+      1,
+      (255 - pixels[index * 4]) / (255 - DRAWING_RED_CHANNEL),
+    );
   }
 
   return { input, previewUrl: modelCanvas.toDataURL("image/png") };

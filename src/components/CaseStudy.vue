@@ -106,8 +106,8 @@
         <h3>The interface is part of the ML system.</h3>
         <p>
           Training and browser preprocessing must agree exactly. Showing the
-          28 × 28 full-canvas input makes that model constraint visible instead
-          of hiding it from the user.
+          cropped, centered 28 × 28 input makes that model constraint visible
+          instead of hiding it from the user.
         </p>
       </article>
 
@@ -116,9 +116,10 @@
         <h3>A proof of concept, with a clear next step.</h3>
         <p>
           The model only recognizes its 100 training categories and can sound
-          confident about unfamiliar drawings. The training run now records
-          top-3 accuracy, per-class recall and confusion matrices so those
-          failure cases can be measured instead of guessed at.
+          confident about unfamiliar drawings. On 500,000 held-out sketches,
+          the exported model reaches 87.10% top-1 accuracy and 95.35% top-3
+          accuracy. The training run also records per-class recall and confusion
+          matrices so failure cases can be measured instead of guessed at.
         </p>
       </article>
     </div>

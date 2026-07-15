@@ -105,7 +105,7 @@ export function useSketchClassifier() {
     if (
       inputShape?.length !== expectedInputShape.length ||
       inputShape.some((dimension, index) => dimension !== expectedInputShape[index]) ||
-      contract?.input?.source !== "full-canvas" ||
+      contract?.input?.source !== "bounding-box-centered" ||
       contract?.input?.foreground !== 1 ||
       contract?.input?.background !== 0
     ) {
