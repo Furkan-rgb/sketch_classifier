@@ -1,638 +1,221 @@
 <template>
-  <div class="container">
-    <h2>QuickDraw Classifier (Single Output)</h2>
-    <p>
-      Draw a
-      <span class="tooltip-trigger"
-        >doodle
-        <span class="tooltip-content">
-          Available categories: {{ labels.join(", ") }}
-        </span>
-      </span>
-      in the canvas and see the CNN's prediction.
-    </p>
+  <div class="site-shell">
+    <header class="site-header section-shell">
+      <a
+        class="profile-brand"
+        href="https://github.com/Furkan-rgb"
+        target="_blank"
+        rel="noreferrer"
+        aria-label="Furkan-rgb on GitHub"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M12 .7a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2.24c-3.22.7-3.9-1.37-3.9-1.37-.53-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.7.08-.7 1.16.08 1.78 1.2 1.78 1.2 1.04 1.77 2.72 1.26 3.38.96.1-.75.4-1.26.74-1.55-2.57-.3-5.28-1.29-5.28-5.69 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.16 1.18a10.98 10.98 0 0 1 5.76 0c2.2-1.49 3.16-1.18 3.16-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.42-2.71 5.39-5.29 5.68.42.36.79 1.06.79 2.14v3.17c0 .31.21.67.79.56A11.5 11.5 0 0 0 12 .7Z"
+          />
+        </svg>
+        <span>Furkan-rgb</span>
+      </a>
 
-    <div class="main-layout">
-      <!-- LEFT COLUMN: Canvas + Clear Button -->
-      <div class="canvas-column">
-        <canvas
-          ref="drawingCanvas"
-          :width="canvasWidth"
-          :height="canvasHeight"
-          @mousedown="startDrawing"
-          @mousemove="draw"
-          @mouseup="stopDrawing"
-          @mouseleave="stopDrawing"
-          @touchstart="handleTouchStart"
-          @touchmove="handleTouchMove"
-          @touchend="stopDrawing"
-          style="border: 2px solid #444; cursor: crosshair"
-        ></canvas>
+      <nav aria-label="Primary navigation">
+        <a href="#playground">Playground</a>
+        <a href="#case-study">Case study</a>
+        <a class="github-link" href="https://github.com/Furkan-rgb/sketch_classifier" target="_blank" rel="noreferrer">
+          View source
+          <svg viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M5 11 11 5M6 5h5v5" />
+          </svg>
+        </a>
+      </nav>
+    </header>
 
-        <div class="buttons">
-          <button @click="clearCanvas">Clear</button>
-        </div>
-      </div>
-
-      <!-- RIGHT COLUMN: Probability Gauges -->
-      <div class="pipeline-column">
-        <!-- Probability Bars for top 5 predictions -->
-        <div class="prob-gauges">
-          <h3>Top Predictions</h3>
-          <div
-            v-for="(item, index) in topK(probabilities, 5)"
-            :key="index"
-            class="prob-item"
-          >
-            <span class="label">{{
-              labels[item.index] ? labels[item.index] : "Unknown"
-            }}</span>
-            <span class="bar-outer"
-              ><span
-                class="bar-fill"
-                :style="{ width: (item.prob * 100).toFixed(1) + '%' }"
-              ></span
-            ></span>
-            <span class="prob-val">{{
-              isNaN(item.prob * 100)
-                ? "0.0%"
-                : (item.prob * 100).toFixed(1) + "%"
-            }}</span>
+    <main id="top">
+      <section class="hero section-shell" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <div class="hero-kicker">
+            <span class="spark" aria-hidden="true">✦</span>
+            Interactive machine learning experiment
+          </div>
+          <h1 id="hero-title">
+            Draw something.<br />
+            <span>The model will guess.</span>
+          </h1>
+          <p>
+            A convolutional neural network that recognizes freehand doodles in real time. Everything runs locally in
+            your browser.
+          </p>
+          <div class="hero-actions">
+            <a class="primary-button" href="#playground">
+              Start drawing
+              <svg viewBox="0 0 20 20" aria-hidden="true">
+                <path d="m6 10 8 0M11 6l4 4-4 4" />
+              </svg>
+            </a>
+            <details class="category-disclosure">
+              <summary>{{ categories.length }} things it knows</summary>
+              <div class="category-popover">
+                <p>Try any of these</p>
+                <div>
+                  <span v-for="category in categories" :key="category">{{ category }}</span>
+                </div>
+              </div>
+            </details>
           </div>
         </div>
-      </div>
-    </div>
-    <!-- end .main-layout -->
 
-    <!-- BLOG / DOCUMENTATION SECTION -->
-    <div class="documentation-section">
-      <h2>How This QuickDraw Classifier Was Built</h2>
+        <div class="hero-art" aria-hidden="true">
+          <span class="doodle-label label-cat">cat?</span>
+          <span class="doodle-label label-tree">tree?</span>
+          <svg class="hero-squiggle" viewBox="0 0 480 320">
+            <path d="M67 224c31-111 91 57 133-73 27-84 69 92 119-29 28-67 65-8 94 68" />
+            <path class="accent-path" d="m394 180 21 17-25 9" />
+          </svg>
+          <div class="floating-card confidence-card">
+            <span>Top prediction</span>
+            <strong>umbrella</strong>
+            <i><b></b></i>
+            <small>87.4% confidence</small>
+          </div>
+          <div class="floating-card pixel-card">
+            <span>28 × 28</span>
+            <div class="pixel-grid">
+              <i v-for="index in 25" :key="index"></i>
+            </div>
+          </div>
+          <span class="hero-star star-one">✦</span>
+          <span class="hero-star star-two">✦</span>
+        </div>
+      </section>
 
-      <p>
-        This project showcases a custom deep learning pipeline for recognizing
-        doodles drawn on a canvas. Below is an overview of how the model was
-        trained, followed by a closer look at the code structure.
-      </p>
+      <section id="playground" class="playground-section">
+        <div class="section-shell">
+          <div class="playground-intro">
+            <div>
+              <span class="eyebrow">Live playground</span>
+              <h2>Put the model to the test.</h2>
+            </div>
+            <p>No uploads. No API calls. Your drawing never leaves this page.</p>
+          </div>
 
-      <h3>1. Data Acquisition &amp; Preprocessing</h3>
-      <p>
-        I used the <strong>QuickDraw dataset</strong> from Google, which
-        contains tens of millions of drawn sketches across numerous categories.
-        Each category (e.g., <em>circle</em>, <em>chair</em>, <em>cat</em>) is
-        stored in separate <code>.npy</code> files under
-        <code>./quickdraw_data/numpy_bitmap</code>.
-      </p>
-      <p>
-        Because this dataset can be very large, I employ a
-        <strong>custom chunked generator</strong> to:
-      </p>
-      <ul>
-        <li>Load only a random subset of each class per epoch</li>
-        <li>
-          Maintain class balance (each class yields the same number of samples)
-        </li>
-        <li>Yield batches to the model without exceeding memory limits</li>
-      </ul>
+          <div class="playground-grid">
+            <DrawingCanvas
+              :prompt="currentPrompt"
+              :model-ready="isReady"
+              @predict="handlePrediction"
+              @cleared="handleClear"
+              @shuffle="choosePrompt"
+            />
+            <PredictionPanel
+              :status="status"
+              :predictions="predictions"
+              :inference-time="inferenceTime"
+              :preview-url="previewUrl"
+              :error-message="errorMessage"
+              @retry="loadModel"
+            />
+          </div>
 
-      <h3>2. Model Architecture</h3>
-      <p>
-        The model is a custom <strong>CNN for 28x28 grayscale images</strong>.
-        It includes several convolutional blocks to extract features, followed
-        by <code>GlobalAveragePooling2D</code> and a final dense layer of size
-        <code>num_classes</code>. Some key highlights:
-      </p>
-      <ul>
-        <li>
-          <strong>Convolution + BatchNorm + ReLU</strong> layers to process
-          sketches effectively
-        </li>
-        <li>
-          <strong>Pooling layers</strong> to downsample while preserving
-          essential features
-        </li>
-        <li><strong>Dropout</strong> to reduce overfitting</li>
-      </ul>
+          <div class="model-facts" aria-label="Model facts">
+            <div>
+              <span class="fact-icon">⌁</span>
+              <p><strong>Local inference</strong><small>TensorFlow.js</small></p>
+            </div>
+            <div>
+              <span class="fact-icon">36</span>
+              <p><strong>Categories</strong><small>Balanced training</small></p>
+            </div>
+            <div>
+              <span class="fact-icon pixel-fact">▦</span>
+              <p><strong>28 × 28 input</strong><small>Grayscale bitmap</small></p>
+            </div>
+            <div>
+              <span class="fact-icon">≈1</span>
+              <p><strong>MB model</strong><small>Browser-ready</small></p>
+            </div>
+          </div>
 
-      <h3>3. Training Workflow</h3>
-      <p>
-        Here is the high-level training code you wrote (showing your advanced
-        mastery of custom data loading in Keras and TFJS export):
-      </p>
-      <pre>
-<code>{{ trainingCodeSnippet }}</code>
-      </pre>
-      <p>
-        After building the model with <code>build_model()</code>, I compile it
-        using <code>Adam</code> and <code>SparseCategoricalCrossentropy</code>.
-        I then fit the model on the <strong>training dataset</strong> for a
-        specified number of epochs and evaluate on a
-        <strong>test dataset</strong>
-        to measure accuracy. Finally, I export the model in
-        <strong>TensorFlow.js format</strong>, so it can be used directly in a
-        browser environment (as this Vue component demonstrates).
-      </p>
+          <KnownCategories :selected-category="currentPrompt" @select="selectPrompt" />
+        </div>
+      </section>
 
-      <h3>4. Inference in the Browser</h3>
-      <p>
-        Once the model is saved in <code>./frontend/public/tfjs_model</code>,
-        this Vue app loads <code>model.json</code> and uses it to make
-        predictions in real-time. When you draw on the canvas:
-      </p>
-      <ul>
-        <li>
-          The drawing is downscaled from <code>280x280</code> to
-          <code>28x28</code>
-        </li>
-        <li>Extract pixel intensities and invert them</li>
-        <li>
-          The <code>tfjs</code> model outputs logits, which is converted to
-          probabilities
-        </li>
-        <li>The top predictions (by probability) are displayed to the user</li>
-      </ul>
-    </div>
+      <CaseStudy />
+
+      <section class="project-cta section-shell">
+        <div>
+          <span class="eyebrow">Explore the implementation</span>
+          <h2>Built as a small experiment.<br />Refined as a complete product.</h2>
+        </div>
+        <a
+          class="primary-button light-button"
+          href="https://github.com/Furkan-rgb/sketch_classifier"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Browse the source
+          <svg viewBox="0 0 20 20" aria-hidden="true">
+            <path d="m6 10 8 0M11 6l4 4-4 4" />
+          </svg>
+        </a>
+      </section>
+    </main>
+
+    <footer class="site-footer section-shell">
+      <a
+        class="profile-brand"
+        href="https://github.com/Furkan-rgb"
+        target="_blank"
+        rel="noreferrer"
+        aria-label="Furkan-rgb on GitHub"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M12 .7a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2.24c-3.22.7-3.9-1.37-3.9-1.37-.53-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.7.08-.7 1.16.08 1.78 1.2 1.78 1.2 1.04 1.77 2.72 1.26 3.38.96.1-.75.4-1.26.74-1.55-2.57-.3-5.28-1.29-5.28-5.69 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.16 1.18a10.98 10.98 0 0 1 5.76 0c2.2-1.49 3.16-1.18 3.16-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.42-2.71 5.39-5.29 5.68.42.36.79 1.06.79 2.14v3.17c0 .31.21.67.79.56A11.5 11.5 0 0 0 12 .7Z"
+          />
+        </svg>
+        <span>Furkan-rgb</span>
+      </a>
+      <a href="#top">Back to top ↑</a>
+    </footer>
   </div>
 </template>
 
-<script>
-import * as tf from "@tensorflow/tfjs";
-import { ref, onMounted, computed } from "vue";
+<script setup>
+import { onMounted, ref } from "vue";
+import CaseStudy from "./components/CaseStudy.vue";
+import DrawingCanvas from "./components/DrawingCanvas.vue";
+import KnownCategories from "./components/KnownCategories.vue";
+import PredictionPanel from "./components/PredictionPanel.vue";
+import { useSketchClassifier } from "./composables/useSketchClassifier";
+import { categories, suggestedCategories } from "./data/categories";
 
-export default {
-  setup() {
-    // --------------------------------------------------
-    // STATE
-    // --------------------------------------------------
-    const canvasWidth = 280;
-    const canvasHeight = 280;
-    const drawingCanvas = ref(null);
-    let ctx = null;
-    let drawing = false;
-    const canvasIsTouched = ref(false);
+const currentPrompt = ref(suggestedCategories[0]);
+const previewUrl = ref("");
+let lastPromptIndex = 0;
 
-    // The model (single-output or multi-output, but we'll only use the first output)
-    let model = null;
+const { status, predictions, inferenceTime, errorMessage, isReady, loadModel, classify, resetPrediction } =
+  useSketchClassifier();
 
-    // For storing final probabilities, predicted label
-    const labels = [
-      "circle",
-      "square",
-      "triangle",
-      "star",
-      "line",
-      "cup",
-      "clock",
-      "chair",
-      "book",
-      "laptop",
-      "cell phone",
-      "key",
-      "umbrella",
-      "car",
-      "cat",
-      "dog",
-      "bird",
-      "fish",
-      "tree",
-      "flower",
-      "sun",
-      "cloud",
-      "eye",
-      "hand",
-      "face",
-      "smiley face",
-      "scissors",
-      "pencil",
-      "hammer",
-      "guitar",
-      "bicycle",
-      "airplane",
-      "sailboat",
-      "apple",
-      "banana",
-      "pizza",
-    ];
+onMounted(loadModel);
 
-    const probabilities = ref([]);
-    const predictedLabel = ref("");
-    const trainingCodeSnippet = computed(() => {
-      return `
-import os
+function handlePrediction({ input, previewUrl: nextPreview }) {
+  previewUrl.value = nextPreview;
+  classify(input);
+}
 
-os.environ["TF_USE_LEGACY_KERAS"] = "1"
+function handleClear() {
+  previewUrl.value = "";
+  resetPrediction();
+}
 
-import tensorflow as tf
-from tensorflow.keras import layers, Model
-import numpy as np
-import tensorflowjs as tfjs
+function choosePrompt() {
+  let nextIndex = lastPromptIndex;
+  while (nextIndex === lastPromptIndex) {
+    nextIndex = Math.floor(Math.random() * suggestedCategories.length);
+  }
+  lastPromptIndex = nextIndex;
+  currentPrompt.value = suggestedCategories[nextIndex];
+}
 
-########################################
-# MODEL DEFINITION
-########################################
-def build_model(num_classes):
-    inputs = layers.Input(shape=(28, 28, 1))
-
-    # Block 1
-    x = layers.Conv2D(64, (3, 3), padding="same", activation="relu")(inputs)
-    x = layers.Conv2D(64, (3, 3), padding="same", activation="relu")(x)
-    x = layers.BatchNormalization()(x)
-    x = layers.MaxPooling2D(pool_size=(2, 2))(x)  # 28 -> 14
-
-    # Block 2
-    x = layers.Conv2D(128, (3, 3), padding="same", activation="relu")(x)
-    x = layers.Conv2D(128, (3, 3), padding="same", activation="relu")(x)
-    x = layers.BatchNormalization()(x)
-    x = layers.MaxPooling2D(pool_size=(2, 2))(x)  # 14 -> 7
-
-    # Global Average Pooling
-    x = layers.GlobalAveragePooling2D()(x)
-    x = layers.Dropout(0.3)(x)
-
-    outputs = layers.Dense(num_classes)(x)
-    return Model(inputs, outputs)
-
-########################################
-# CHUNKED GENERATOR
-########################################
-def chunked_generator(
-    categories,
-    data_folder,
-    samples_per_class_per_chunk=1000,
-    batch_size=256,
-    is_training=True,
-    train_split=0.8,
-    samples_per_class=None,
-):
-    # ...
-    # see the generator logic for balanced, chunked data
-    # ...
-
-########################################
-# GET TF.DATA DATASET
-########################################
-def get_chunked_dataset(...):
-    # ...
-
-########################################
-# TRAINING ENTRY POINT
-########################################
-def main():
-    DATA_FOLDER = "./quickdraw_data/numpy_bitmap"
-    CATEGORIES = [ ... ]  # 37 classes
-
-    BATCH_SIZE = 64
-    EPOCHS = 20
-    SAMPLES_PER_CLASS_PER_CHUNK = 1000
-    STEPS_PER_EPOCH = (SAMPLES_PER_CLASS_PER_CHUNK * len(CATEGORIES)) // BATCH_SIZE
-
-    # Build datasets
-    train_ds = get_chunked_dataset(...)
-    test_ds = get_chunked_dataset(...)
-
-    # Build model
-    model = build_model(num_classes=len(CATEGORIES))
-    model.compile(
-        optimizer=tf.keras.optimizers.legacy.Adam(learning_rate=0.001),
-        loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-        metrics=["accuracy"],
-    )
-
-    model.fit(
-        train_ds,
-        epochs=EPOCHS,
-        steps_per_epoch=STEPS_PER_EPOCH,
-    )
-
-    test_loss, test_acc = model.evaluate(test_ds, steps=STEPS_PER_EPOCH)
-    print(f"Test accuracy: {test_acc:.2%}")
-
-    # Save model for TFJS
-    tfjs.converters.save_keras_model(model, "./frontend/public/tfjs_model")
-
-if __name__ == "__main__":
-    main()
-      `;
-    });
-
-    // --------------------------------------------------
-    // onMounted: Load the model & init canvas
-    // --------------------------------------------------
-    onMounted(async () => {
-      // Prepare canvas for drawing
-      if (drawingCanvas.value) {
-        ctx = drawingCanvas.value.getContext("2d");
-        // Fill background white
-        ctx.fillStyle = "#fff";
-        ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-      }
-
-      try {
-        // Load the model (check your path)
-        model = await tf.loadLayersModel("tfjs_model/model.json");
-        console.log("Model loaded:", model);
-      } catch (error) {
-        console.error("Error loading model:", error);
-      }
-    });
-
-    // --------------------------------------------------
-    // Drawing Logic (Mouse & Touch)
-    // --------------------------------------------------
-    function startDrawing(e) {
-      drawing = true;
-      canvasIsTouched.value = true;
-      if (!ctx) return;
-      ctx.beginPath();
-      ctx.moveTo(e.offsetX, e.offsetY);
-    }
-
-    function draw(e) {
-      if (!drawing || !ctx) return;
-      ctx.lineWidth = 10;
-      ctx.lineCap = "round";
-      ctx.strokeStyle = "#000";
-      ctx.lineTo(e.offsetX, e.offsetY);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(e.offsetX, e.offsetY);
-      runInference();
-    }
-
-    function stopDrawing() {
-      drawing = false;
-      if (ctx) {
-        ctx.beginPath();
-      }
-      runInference();
-    }
-
-    function handleTouchStart(e) {
-      e.preventDefault();
-      const rect = drawingCanvas.value.getBoundingClientRect();
-      const x = e.touches[0].clientX - rect.left;
-      const y = e.touches[0].clientY - rect.top;
-      drawing = true;
-      canvasIsTouched.value = true;
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-      runInference();
-    }
-
-    function handleTouchMove(e) {
-      if (!drawing || !ctx) return;
-      e.preventDefault();
-      const rect = drawingCanvas.value.getBoundingClientRect();
-      const x = e.touches[0].clientX - rect.left;
-      const y = e.touches[0].clientY - rect.top;
-      ctx.lineWidth = 10;
-      ctx.lineCap = "round";
-      ctx.strokeStyle = "#000";
-      ctx.lineTo(x, y);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-      runInference();
-    }
-
-    // --------------------------------------------------
-    // Clear Canvas & Reset Predictions
-    // --------------------------------------------------
-    function clearCanvas() {
-      if (!ctx) return;
-      ctx.fillStyle = "#fff";
-      ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-      probabilities.value = [];
-      predictedLabel.value = "";
-      canvasIsTouched.value = false;
-    }
-
-    // --------------------------------------------------
-    // runInference: handle single (final) output
-    // --------------------------------------------------
-    async function runInference() {
-      // If model or canvas isn't ready, skip
-      if (!model || !drawingCanvas.value || !canvasIsTouched.value) return;
-
-      // 1) Create a temp <canvas> to downscale to 28x28
-      const smallCanvas = document.createElement("canvas");
-      smallCanvas.width = 28;
-      smallCanvas.height = 28;
-      const smallCtx = smallCanvas.getContext("2d");
-      // Draw the big canvas onto the small canvas
-      smallCtx.drawImage(drawingCanvas.value, 0, 0, 28, 28);
-
-      // 2) Extract pixel data => create Float32Array
-      const imgData = smallCtx.getImageData(0, 0, 28, 28);
-      const inputBuffer = new Float32Array(28 * 28);
-
-      for (let i = 0; i < 28 * 28; i++) {
-        const idx = i * 4;
-        const grayscaleVal = imgData.data[idx]; // R channel
-        // invert so that black lines become white lines
-        inputBuffer[i] = (255 - grayscaleVal) / 255.0;
-      }
-
-      // 3) Construct a 4D tensor => [1, 28, 28, 1]
-      const inputTensor = tf.tensor4d(inputBuffer, [1, 28, 28, 1]);
-
-      // 4) model.predict => take the first or named 'logits'
-      let logits;
-      let results;
-      try {
-        results = model.predict(inputTensor);
-      } catch (err) {
-        console.error("Prediction error:", err);
-        tf.dispose(inputTensor);
-        return;
-      }
-
-      if (Array.isArray(results)) {
-        // If multi-output, the first is typically the 'logits'
-        logits = results[0];
-      } else if (
-        typeof results === "object" &&
-        (results["Identity"] || results["output_0"])
-      ) {
-        logits = results["Identity"] || results["output_0"];
-      } else {
-        // Possibly a single-tensor result
-        logits = results;
-      }
-
-      if (!logits) {
-        console.warn("No logits found in model output.");
-        tf.dispose([inputTensor, results]);
-        return;
-      }
-
-      // 5) Convert logits -> probabilities
-      const logitsData = await logits.data();
-      const exps = logitsData.map((x) => Math.exp(x));
-      let sumExps = exps.reduce((a, b) => a + b, 0);
-      if (!isFinite(sumExps) || sumExps === 0) sumExps = 1;
-      const probs = exps.map((x) => x / sumExps);
-
-      // 6) Update reactive state
-      probabilities.value = probs;
-      const maxProb = Math.max(...probs);
-      const maxIndex = probs.indexOf(maxProb);
-      predictedLabel.value = labels[maxIndex] || `Class ${maxIndex}`;
-
-      // 7) Dispose used tensors
-      tf.dispose([inputTensor, logits, results]);
-    }
-
-    // --------------------------------------------------
-    // Utility: top K from probabilities
-    // --------------------------------------------------
-    function topK(probArray, k = 3) {
-      if (!probArray || !probArray.length) return [];
-      const arr = Array.from(probArray).map((prob, i) => ({ prob, index: i }));
-      arr.sort((a, b) => b.prob - a.prob);
-      return arr.slice(0, k);
-    }
-
-    // Return references / methods for template
-    return {
-      canvasWidth,
-      canvasHeight,
-      drawingCanvas,
-
-      probabilities,
-      predictedLabel,
-      labels,
-      trainingCodeSnippet,
-
-      startDrawing,
-      draw,
-      stopDrawing,
-      handleTouchStart,
-      handleTouchMove,
-      clearCanvas,
-      topK,
-    };
-  },
-};
+function selectPrompt(category) {
+  currentPrompt.value = category;
+}
 </script>
-
-<style scoped>
-.container {
-  width: 100%;
-  margin: 1rem auto;
-  text-align: center;
-  font-family: sans-serif;
-}
-
-.main-layout {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  justify-content: center;
-  margin-top: 1rem;
-}
-
-.canvas-column {
-  min-width: 300px;
-  text-align: center;
-}
-
-.pipeline-column {
-  min-width: 200px;
-  text-align: left;
-}
-
-.buttons {
-  margin-top: 1rem;
-}
-
-/* Probability bar styling */
-.prob-gauges {
-  margin-top: 1rem;
-}
-.prob-item {
-  display: flex;
-  align-items: center;
-  margin-bottom: 4px;
-}
-.label {
-  width: 80px;
-  text-align: right;
-  margin-right: 8px;
-}
-.bar-outer {
-  flex: 1;
-  height: 10px;
-  background: #eee;
-  margin-right: 8px;
-  border-radius: 3px;
-  overflow: hidden;
-}
-.bar-fill {
-  display: block;
-  height: 100%;
-  background: #2196f3;
-  transition: width 0.2s ease;
-}
-.prob-val {
-  width: 50px;
-  text-align: right;
-}
-
-/* Documentation / Blog Section */
-.documentation-section {
-  margin-top: 2rem;
-  text-align: left;
-  max-width: 800px;
-  margin-left: auto;
-  margin-right: auto;
-}
-.documentation-section pre {
-  background: #f5f5f5;
-  padding: 10px;
-  white-space: pre-wrap;
-  border-radius: 4px;
-  overflow-x: auto;
-}
-
-/* Tooltip styling */
-.tooltip-trigger {
-  position: relative;
-  border-bottom: 1px dashed #999;
-  cursor: help;
-}
-
-.tooltip-content {
-  visibility: hidden;
-  width: 250px;
-  background-color: #555;
-  color: #fff;
-  text-align: center;
-  border-radius: 6px;
-  padding: 8px;
-  position: absolute;
-  z-index: 1;
-  top: 125%;
-  left: 50%;
-  transform: translateX(-50%);
-  opacity: 0;
-  transition: opacity 0.3s, visibility 0.3s;
-  font-size: 0.9em;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-}
-
-.tooltip-content::after {
-  content: "";
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  margin-left: -5px;
-  border-width: 5px;
-  border-style: solid;
-  border-color: #555 transparent transparent transparent;
-}
-
-.tooltip-trigger:hover .tooltip-content {
-  visibility: visible;
-  opacity: 1;
-}
-</style>

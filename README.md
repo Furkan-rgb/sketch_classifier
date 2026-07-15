@@ -1,8 +1,12 @@
 # QuickDraw Sketch Classifier
 
-A browser-based doodle classifier powered by a custom 36-class convolutional neural network trained on Google’s [Quick, Draw! dataset](https://quickdraw.withgoogle.com/data). Draw with a mouse or touchscreen and see the model’s top predictions update in real time.
+A browser-based doodle classifier powered by a custom 36-class convolutional
+neural network trained on Google’s [Quick, Draw! dataset](https://quickdraw.withgoogle.com/data).
+Draw with a mouse or touchscreen and watch the model rank its predictions in
+real time.
 
-Inference runs entirely in the browser with TensorFlow.js—no backend or image upload is required.
+Inference runs entirely in the browser with TensorFlow.js—no backend, account,
+or image upload is required.
 
 **[Try the live demo →](https://furkan-rgb.github.io/sketch_classifier/)**
 
@@ -11,19 +15,27 @@ Inference runs entirely in the browser with TensorFlow.js—no backend or image 
 - Custom CNN for `28 × 28` grayscale sketches
 - Real-time, client-side inference with TensorFlow.js
 - Top-five predictions with confidence scores
-- Mouse and touchscreen drawing support
-- A pretrained model bundled with the application
+- Mouse, stylus, and touchscreen drawing support
+- Undo, clear, and randomized drawing prompts
+- All 36 supported categories documented in the interface
 - Static deployment through GitHub Pages
 
 ## How it works
 
-1. The user draws on a `280 × 280` HTML canvas.
-2. The drawing is resized to `28 × 28` pixels.
-3. Pixel values are converted to grayscale, inverted, and normalized to `[0, 1]`.
+1. Pointer strokes are recorded on an `800 × 800` backing canvas.
+2. The complete drawing area is resized to `28 × 28` pixels.
+3. Pixels are inverted and normalized so ink is `1` and the background is `0`.
 4. The resulting tensor is passed to the TensorFlow.js model.
-5. The model’s logits are converted to probabilities and the five most likely classes are displayed.
+5. Logits are converted to probabilities and the five most likely classes are
+   displayed.
+
+The model and its ordered `class_names.json` file are loaded together. Runtime
+and build-time checks ensure that model outputs cannot silently drift from the
+labels shown in the interface.
 
 ## Model architecture
+
+The currently bundled model uses:
 
 ```text
 28 × 28 × 1 input
@@ -39,21 +51,30 @@ Inference runs entirely in the browser with TensorFlow.js—no backend or image 
 <details>
 <summary>View all 36 categories</summary>
 
-`circle`, `square`, `triangle`, `star`, `line`, `cup`, `clock`, `chair`, `book`, `laptop`, `cell phone`, `key`, `umbrella`, `car`, `cat`, `dog`, `bird`, `fish`, `tree`, `flower`, `sun`, `cloud`, `eye`, `hand`, `face`, `smiley face`, `scissors`, `pencil`, `hammer`, `guitar`, `bicycle`, `airplane`, `sailboat`, `apple`, `banana`, and `pizza`.
+`circle`, `square`, `triangle`, `star`, `line`, `cup`, `clock`, `chair`,
+`book`, `laptop`, `cell phone`, `key`, `umbrella`, `car`, `cat`, `dog`,
+`bird`, `fish`, `tree`, `flower`, `sun`, `cloud`, `eye`, `hand`, `face`,
+`smiley face`, `scissors`, `pencil`, `hammer`, `guitar`, `bicycle`,
+`airplane`, `sailboat`, `apple`, `banana`, and `pizza`.
 
 </details>
 
 ## Model and data
 
-The model was trained on `28 × 28` grayscale bitmap samples from Quick, Draw!. The documented training approach uses balanced, chunked sampling across categories so the large per-class NumPy files do not need to be loaded into memory at once.
+The model was trained on `28 × 28` grayscale bitmap samples from Quick, Draw!.
+The development workspace keeps the source dataset and Python training pipeline
+outside this frontend repository; this repository contains the browser app and
+the exported TensorFlow.js artifacts.
 
-This repository contains the exported TensorFlow.js model and the browser inference application. The source dataset and a standalone, executable Python training pipeline are not included, and the repository does not publish an evaluation score.
+The classifier only knows its 36 training categories. An unfamiliar drawing is
+still assigned to the closest known class, so confidence should not be treated
+as proof that the drawing belongs to the model’s vocabulary.
 
 ## Tech stack
 
 - **Vue 3** for the interface
 - **TensorFlow.js** for client-side inference
-- **TensorFlow/Keras** for the exported model
+- **TensorFlow/Keras** for model training and export
 - **HTML Canvas** for drawing input
 - **Vite** for development and builds
 - **GitHub Pages** for deployment
@@ -64,41 +85,58 @@ This repository contains the exported TensorFlow.js model and the browser infere
 .
 ├── public/
 │   └── tfjs_model/
+│       ├── class_names.json
 │       ├── model.json
 │       └── group1-shard1of1.bin
+├── scripts/
+│   └── validate-model-contract.mjs
 ├── src/
-│   ├── App.vue          # Drawing UI, preprocessing, and inference
-│   ├── main.js          # Vue entry point
-│   └── style.css        # Global styles
+│   ├── components/
+│   │   ├── CaseStudy.vue
+│   │   ├── DrawingCanvas.vue
+│   │   ├── KnownCategories.vue
+│   │   └── PredictionPanel.vue
+│   ├── composables/
+│   │   └── useSketchClassifier.js
+│   ├── data/
+│   │   └── categories.js
+│   ├── App.vue
+│   ├── main.js
+│   └── style.css
 ├── index.html
 ├── package.json
-└── vite.config.js       # Vite and GitHub Pages configuration
+└── vite.config.js
 ```
 
 ## Run locally
 
 Requirements: Node.js and npm.
 
-```bash
+```sh
 git clone https://github.com/Furkan-rgb/sketch_classifier.git
 cd sketch_classifier
 npm ci
 npm run dev
 ```
 
-Open the local URL printed by Vite and start drawing. No API key, backend, or additional model download is required.
+Open the local URL printed by Vite and start drawing. No API key or backend is
+required.
 
 Create and preview a production build with:
 
-```bash
+```sh
 npm run build
 npm run preview
 ```
 
+`npm run build` validates the model input shape, output count, ordered label
+contract, and UI category coverage before building the application.
+
 ## Deployment
 
-The Vite base path is configured for `/sketch_classifier/`. With GitHub credentials configured, build the app and publish `dist/` to the `gh-pages` branch with:
+The Vite base path is configured for `/sketch_classifier/`. With GitHub
+credentials configured, publish `dist/` to the `gh-pages` branch with:
 
-```bash
+```sh
 npm run deploy
 ```
