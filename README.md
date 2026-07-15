@@ -46,18 +46,34 @@ labels shown in the interface.
   → Dense(100 logits)
 ```
 
-Design rationale, given the constraint that the model must download and run in
-the browser:
+### Design rationale
+
+Every choice below serves the same constraint: the model must download fast
+and run in real time in the browser, while separating 100 frequently similar
+doodle classes.
 
 - **Stacked 3 × 3 convolutions** — two per block give the receptive field of a
   5 × 5 kernel with fewer parameters and an extra non-linearity.
-- **Widening blocks (48 → 96 → 192) with pooling** — spatial resolution is
-  traded for channel depth as features grow from strokes to shapes to objects.
+- **Widening blocks (48 → 96 → 192) with pooling** — each max-pool halves the
+  spatial resolution while the channel count doubles. This gradually converts
+  *where* information (pixel positions, which stop mattering) into *what*
+  information (which pattern is present, which is all the classifier needs).
+  Early layers only need a few dozen detectors because a 3 × 3 ink patch can
+  only be an edge, curve, or line ending; deep layers need many more because
+  the space of *combinations* — "two circles joined by lines" — is much
+  larger. The total representation still shrinks every block
+  (28×28×48 → 14×14×96 → 7×7×192 is a halving each time), so the network is a
+  funnel even though the channel count grows. Halving H × W while doubling
+  channels also keeps the FLOPs of every block roughly constant, so compute is
+  spent evenly across depth.
 - **Batch normalization, no conv biases** — stabilizes training at a learning
   rate of `1e-3`; biases are redundant directly before normalization.
-- **Global average pooling instead of flattening** — collapses each feature map
-  to one value, cutting the usual dense-layer parameter bulk and much of the
-  overfitting risk.
+- **Global average pooling instead of flattening** — flattening `7×7×192`
+  would feed a 9,408-wide vector into the dense head, most of a million
+  parameters that mainly memorize pixel positions. Averaging each feature map
+  to a single "how strongly did I fire anywhere?" value cuts that to 192,
+  buys translation tolerance, and is where most of the small model size comes
+  from.
 - **128-unit embedding with 35% dropout** — a small mixing layer between pooled
   features and the classifier, regularized because it is the layer most prone
   to memorization.
@@ -67,6 +83,29 @@ the browser:
 Geometric and stroke-width augmentation wrap the classifier only during
 training; the exported browser model contains none of it. The result is
 roughly 684k parameters — about 2.6 MB of float32 weights.
+
+### Where the design comes from
+
+The architecture is not novel — it is a deliberately scaled-down assembly of
+well-established ideas, sized for a 28 × 28 single-channel input:
+
+- The overall shape — uniform 3 × 3 convolutions with channel width doubling
+  after every pooling step — follows **VGG**
+  ([Simonyan & Zisserman, 2014](https://arxiv.org/abs/1409.1556)).
+- Replacing the flatten-plus-dense head with **global average pooling** comes
+  from **Network in Network**
+  ([Lin et al., 2013](https://arxiv.org/abs/1312.4400)).
+- **Batch normalization** ([Ioffe & Szegedy, 2015](https://arxiv.org/abs/1502.03167))
+  between convolution and activation, with conv biases dropped as redundant.
+- **Dropout** for the dense head
+  ([Srivastava et al., 2014](https://jmlr.org/papers/v15/srivastava14a.html)).
+- **He initialization** for the ReLU convolutions
+  ([He et al., 2015](https://arxiv.org/abs/1502.01852)) and the **Adam**
+  optimizer ([Kingma & Ba, 2014](https://arxiv.org/abs/1412.6980)).
+- The task setup — small grayscale bitmaps, compact CNN — sits in the
+  MNIST/LeNet tradition ([LeCun et al., 1998](http://yann.lecun.com/exdb/publis/pdf/lecun-98.pdf)),
+  applied to Google's [Quick, Draw! dataset](https://quickdraw.withgoogle.com/data)
+  of ~50 million player-drawn doodles across 345 categories.
 
 ## Training pipeline
 
