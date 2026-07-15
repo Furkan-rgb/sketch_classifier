@@ -42,7 +42,10 @@
     "width": 28,
     "height": 28,
     "channels": 1,
-    "range": [0, 1],
+    "range": [
+      0,
+      1
+    ],
     "foreground": 1,
     "background": 0,
     "source": "full-canvas"
