@@ -46,39 +46,78 @@ labels shown in the interface.
   → Dense(100 logits)
 ```
 
-The architecture is a scaled-down **VGG**
-([Simonyan & Zisserman, 2014](https://arxiv.org/abs/1409.1556)): the same
-uniform 3 × 3 convolutions with the channel count doubling after every pooling
-step, sized for a 28 × 28 single-channel input instead of ImageNet photos. The
-two deviations from vanilla VGG are standard modern practice: batch
-normalization after every convolution, and global average pooling in place of
-the enormous flatten-plus-dense head.
+We use a custom, scaled-down architecture based on **VGG-Net's design pattern**
+rather than a standard VGG model. It borrows VGG's pattern of stacking small
+`3 × 3` convolutions and widening the channel count as spatial resolution falls
+([Simonyan & Zisserman, 2014](https://arxiv.org/abs/1409.1556)). It combines
+that pattern with [batch normalization](https://arxiv.org/abs/1502.03167) and
+[global average pooling](https://arxiv.org/abs/1312.4400), both established
+ideas from other CNN research.
+
+VGG was originally developed and evaluated on ImageNet, but this classifier is
+not pretrained on ImageNet and uses no VGG weights. Its layers are initialized
+from scratch and trained only on Quick, Draw! bitmaps.
 
 ### Design rationale
 
-Every choice serves the same constraint: the model must download fast and run
-in real time in the browser, while separating 100 often-similar doodle classes.
+The easiest way to understand the network is as a gradual conversion from
+pixels into evidence:
 
-- **Stacked 3 × 3 convolutions** — two per block give the receptive field of a
-  5 × 5 kernel with fewer parameters and an extra non-linearity.
-- **Widening blocks (48 → 96 → 192) with pooling** — each max-pool halves the
-  spatial resolution while the channels double, gradually trading *where*
-  information (pixel positions, which stop mattering) for *what* information
-  (which pattern is present). The representation still shrinks by half every
-  block, and per-block compute stays roughly constant.
-- **Batch normalization, no conv biases** — stabilizes training at a learning
-  rate of `1e-3`; biases are redundant directly before normalization.
-- **Global average pooling instead of flattening** — collapses `7×7×192` to
-  192 values ("how strongly did each feature fire anywhere?") rather than a
-  9,408-wide flatten, saving most of a million position-memorizing parameters.
-- **128-unit embedding with 35% dropout** — a small mixing layer, regularized
-  because it is the layer most prone to memorization.
-- **Raw logits output** — softmax is applied in the browser, so exported
-  weights stay loss-function agnostic.
+```text
+pixels → strokes and corners → larger shapes and parts
+       → a compact description of the drawing → 100 class scores
+```
+
+Early layers preserve location because the model still needs to learn how
+strokes connect. Deeper layers care more about which patterns are present than
+their exact pixel positions. Every choice balances this recognition task
+against the need to download quickly and run in real time in a browser.
+
+VGG-style feature extraction was chosen as a simple, well-understood baseline
+for building local strokes into higher-level shapes. Once the scaled-down model
+produced a working classifier within the project's download-size and real-time
+browser constraints, we did not continue into a wider architecture search. It
+should therefore not be read as a claim that VGG is optimal for this task.
+
+A scaled-down [MobileNet](https://arxiv.org/abs/1704.04861), or another
+lightweight CNN, could also be a good fit. MobileNet primarily uses
+depthwise-separable convolutions in place of standard convolutions, which can
+reduce parameter count and computation. Whether that would improve accuracy,
+model size, or actual TensorFlow.js latency here would need to be measured. We
+have not implemented or benchmarked that alternative.
+
+- **Convolution blocks learn increasingly complex features.** Each `3 × 3`
+  convolution examines a small neighborhood. Stacking two lets a block combine
+  simple features such as edges into larger patterns such as corners, curves,
+  and object parts. The second convolution also adds another non-linear
+  transformation, allowing the block to represent more complex patterns.
+- **Pooling trades spatial detail for higher-level features.** The feature maps
+  shrink from `28 × 28` to `14 × 14` and then `7 × 7`. At the same time, the
+  number of channels grows from 48 to 96 to 192. The network therefore keeps
+  less precise location information while learning a larger vocabulary of
+  detectable patterns.
+- **Batch normalization keeps training stable.** It keeps intermediate values
+  on a manageable scale as they pass through the network. Convolution biases
+  are omitted because the following normalization layer already learns an
+  equivalent offset.
+- **Global average pooling creates a feature inventory.** At the end of the
+  convolution blocks, the model has 192 feature maps of size `7 × 7`. Averaging
+  each map produces 192 values that roughly answer, "How strongly was this
+  feature detected anywhere in the drawing?" This is much smaller than
+  flattening all `7 × 7 × 192 = 9,408` values and makes the prediction less
+  dependent on an object appearing at one exact position.
+- **The 128-unit dense layer combines those features.** It turns the feature
+  inventory into a compact signature of the whole drawing. During training,
+  dropout hides 35% of these values at random, discouraging the classifier from
+  relying too heavily on any one feature.
+- **The final layer produces 100 logits.** Each logit is an unnormalized score
+  for one class. The browser applies softmax to turn these scores into
+  probabilities and displays the five highest ones.
 
 Geometric and stroke-width augmentation wrap the classifier only during
-training; the exported browser model contains none of it. The result is
-roughly 684k parameters — about 2.6 MB of float32 weights.
+training; the exported browser model contains none of it. The result is a
+task-specific arrangement of established CNN building blocks with roughly 684k
+parameters — about 2.6 MB of float32 weights.
 
 ## Training pipeline
 
