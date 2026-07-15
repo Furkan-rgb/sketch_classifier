@@ -36,9 +36,19 @@ export function useSketchClassifier() {
       tf = await import("@tensorflow/tfjs");
       await tf.ready();
       const modelBaseUrl = `${import.meta.env.BASE_URL}tfjs_model`;
+      // The model ships as three files that must come from the same deploy:
+      // model.json, the weight shard(s) it lists, and class_names.json. The
+      // build tag busts stale caches; weightUrlConverter applies it to the
+      // shard requests, which TensorFlow.js resolves internally.
+      const withBuildTag = (url) => `${url}?v=${__BUILD_ID__}`;
       const [loadedModel, classResponse] = await Promise.all([
-        tf.loadLayersModel(`${modelBaseUrl}/model.json`),
-        fetch(`${modelBaseUrl}/class_names.json`),
+        tf.loadLayersModel(
+          tf.io.http(withBuildTag(`${modelBaseUrl}/model.json`), {
+            weightUrlConverter: async (weightFileName) =>
+              withBuildTag(`${modelBaseUrl}/${weightFileName}`),
+          }),
+        ),
+        fetch(withBuildTag(`${modelBaseUrl}/class_names.json`)),
       ]);
 
       if (!classResponse.ok) {
