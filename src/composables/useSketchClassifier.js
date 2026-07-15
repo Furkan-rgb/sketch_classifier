@@ -1,14 +1,28 @@
 import { computed, ref } from "vue";
 import { categories as displayedCategories } from "../data/categories";
 
+// Layers tapped for the live network visualization, in forward order. The
+// last entry must be the logits layer; the rest feed the activation display.
+const ACTIVATION_LAYERS = [
+  "block_1_relu_2",
+  "block_2_relu_2",
+  "block_3_relu_2",
+  "global_average_pooling",
+  "embedding",
+  "class_logits",
+];
+const FEATURE_MAPS_PER_BLOCK = 6;
+
 export function useSketchClassifier() {
   const status = ref("idle");
   const predictions = ref([]);
   const inferenceTime = ref(null);
   const errorMessage = ref("");
+  const activations = ref(null);
 
   let tf = null;
   let model = null;
+  let activationModel = null;
   let classNames = [];
   let latestRequest = 0;
 
@@ -34,6 +48,7 @@ export function useSketchClassifier() {
       model = loadedModel;
       const contract = await classResponse.json();
       classNames = validateModelContract(model, contract);
+      activationModel = buildActivationModel(model);
 
       const warmupInput = tf.zeros([1, 28, 28, 1]);
       const warmupOutput = model.predict(warmupInput);
@@ -104,6 +119,66 @@ export function useSketchClassifier() {
     return names;
   }
 
+  function buildActivationModel(loadedModel) {
+    try {
+      return tf.model({
+        inputs: loadedModel.inputs,
+        outputs: ACTIVATION_LAYERS.map((name) => loadedModel.getLayer(name).output),
+      });
+    } catch (error) {
+      // Older or differently named exports simply skip the visualization.
+      console.warn("Layer activations are unavailable for this model.", error);
+      return null;
+    }
+  }
+
+  function extractTopFeatureMaps(data, height, width, channels) {
+    const area = height * width;
+    const channelMeans = new Float32Array(channels);
+    for (let index = 0; index < data.length; index += 1) {
+      channelMeans[index % channels] += data[index];
+    }
+
+    const rankedChannels = Array.from(channelMeans.keys()).sort(
+      (a, b) => channelMeans[b] - channelMeans[a],
+    );
+
+    const maps = rankedChannels.slice(0, FEATURE_MAPS_PER_BLOCK).map((channel) => {
+      const values = new Array(area);
+      let max = 0;
+      for (let pixel = 0; pixel < area; pixel += 1) {
+        const value = data[pixel * channels + channel];
+        values[pixel] = value;
+        if (value > max) max = value;
+      }
+      return { channel, values, max };
+    });
+
+    return { height, width, channels, maps };
+  }
+
+  async function publishActivations(inputBuffer, outputs, requestId) {
+    const blockTensors = outputs.slice(0, 3);
+    const [pooledTensor, embeddingTensor] = outputs.slice(3, 5);
+    const [blockData, pooledData, embeddingData] = await Promise.all([
+      Promise.all(blockTensors.map((tensor) => tensor.data())),
+      pooledTensor.data(),
+      embeddingTensor.data(),
+    ]);
+
+    if (requestId !== latestRequest) return;
+
+    activations.value = {
+      input: Array.from(inputBuffer),
+      blocks: blockTensors.map((tensor, index) => {
+        const [, height, width, channels] = tensor.shape;
+        return extractTopFeatureMaps(blockData[index], height, width, channels);
+      }),
+      pooled: Array.from(pooledData),
+      embedding: Array.from(embeddingData),
+    };
+  }
+
   function getLogits(output) {
     if (Array.isArray(output)) return output[0];
     if (output && typeof output === "object" && !output.data) {
@@ -123,8 +198,10 @@ export function useSketchClassifier() {
 
     try {
       inputTensor = tf.tensor4d(inputBuffer, [1, 28, 28, 1]);
-      output = model.predict(inputTensor);
-      const logits = getLogits(output);
+      output = activationModel
+        ? activationModel.predict(inputTensor)
+        : model.predict(inputTensor);
+      const logits = activationModel ? output[output.length - 1] : getLogits(output);
 
       if (!logits) throw new Error("The model returned no prediction tensor.");
 
@@ -142,6 +219,10 @@ export function useSketchClassifier() {
         .sort((a, b) => b.probability - a.probability)
         .slice(0, 5);
       inferenceTime.value = Math.max(1, Math.round(performance.now() - startedAt));
+
+      if (activationModel) {
+        await publishActivations(inputBuffer, output, requestId);
+      }
     } catch (error) {
       console.error("Unable to classify the drawing", error);
       if (requestId === latestRequest) {
@@ -159,6 +240,7 @@ export function useSketchClassifier() {
     predictions.value = [];
     inferenceTime.value = null;
     errorMessage.value = "";
+    activations.value = null;
   }
 
   return {
@@ -166,6 +248,7 @@ export function useSketchClassifier() {
     predictions,
     inferenceTime,
     errorMessage,
+    activations,
     isReady,
     loadModel,
     classify,

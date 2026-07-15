@@ -133,6 +133,8 @@
             </div>
           </div>
 
+          <NetworkVisualizer :activations="activations" :predictions="predictions" />
+
           <KnownCategories :selected-category="currentPrompt" @select="selectPrompt" />
         </div>
       </section>
@@ -183,6 +185,7 @@ import { onMounted, ref } from "vue";
 import CaseStudy from "./components/CaseStudy.vue";
 import DrawingCanvas from "./components/DrawingCanvas.vue";
 import KnownCategories from "./components/KnownCategories.vue";
+import NetworkVisualizer from "./components/NetworkVisualizer.vue";
 import PredictionPanel from "./components/PredictionPanel.vue";
 import { useSketchClassifier } from "./composables/useSketchClassifier";
 import { categories, suggestedCategories } from "./data/categories";
@@ -191,8 +194,17 @@ const currentPrompt = ref(suggestedCategories[0]);
 const previewUrl = ref("");
 let lastPromptIndex = 0;
 
-const { status, predictions, inferenceTime, errorMessage, isReady, loadModel, classify, resetPrediction } =
-  useSketchClassifier();
+const {
+  status,
+  predictions,
+  inferenceTime,
+  errorMessage,
+  activations,
+  isReady,
+  loadModel,
+  classify,
+  resetPrediction,
+} = useSketchClassifier();
 
 onMounted(loadModel);
 
