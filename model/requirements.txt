@@ -1,0 +1,16 @@
+# Use Python 3.11. These versions keep TensorFlow, legacy TF-Keras, and the
+# TensorFlow.js converter on a mutually compatible release line.
+tensorflow==2.18.0
+tf-keras==2.18.0
+tensorflowjs==4.22.0
+tensorflow-decision-forests==1.11.0
+
+# Pin TensorFlow.js converter dependencies that otherwise resolve to newer,
+# TensorFlow-incompatible JAX releases.
+jax==0.4.35
+jaxlib==0.4.35
+flax==0.10.2
+packaging==23.2
+
+numpy==2.0.2
+matplotlib==3.9.2

@@ -1,5 +1,23 @@
+# Local datasets and Python environments
+quickdraw_data/*
+!quickdraw_data/fetch.py
+.venv/
+venv/
+
+# Generated training outputs
+model/training_artifacts/
+__pycache__/
+*.py[cod]
+
+# Node and Vite outputs
+node_modules/
+dist/
+dist-ssr/
+*.local
+public/Screenshot*.png
+
 # Logs
-logs
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -7,18 +25,10 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
-__pycache__/
-*.py[cod]
-model/training_artifacts/
-
-# Editor directories and files
+# Editor and operating-system files
 .vscode/*
 !.vscode/extensions.json
-.idea
+.idea/
 .DS_Store
 *.suo
 *.ntvs*
