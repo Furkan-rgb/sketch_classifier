@@ -179,6 +179,33 @@ repository and are stored in
 [`public/tfjs_model/metrics.json`](public/tfjs_model/metrics.json). Each
 successful training run regenerates that file alongside the model weights.
 
+### Training curves
+
+Training and validation curves track each other closely across all 48 epochs,
+with validation sitting slightly above training thanks to dropout and
+augmentation—so the model generalizes rather than memorizes. The learning-rate
+reductions (visible as the late-epoch flattening) drive most of the final gains.
+
+![Training and validation accuracy and loss over 48 epochs](docs/training_curves.png)
+
+Regenerate this plot from the recorded history with
+`python scripts/plot_training_curves.py`.
+
+### Per-class recall
+
+Recall varies widely from class to class even under the balanced test set:
+
+- **Strongest:** `t-shirt` (96.6%), `sailboat` (96.3%), `envelope` (96.0%),
+  `house` (95.9%), `rainbow` (95.7%)
+- **Weakest:** `dog` (52.0%), `bird` (57.8%), `moon` (68.4%), `frog` (69.0%),
+  `bicycle` (71.7%)
+
+The hardest classes are exactly the visually ambiguous ones—`dog` is routinely
+confused with `horse`, `cow`, and other four-legged animals, `bird` collapses
+into `duck`, and a thin `moon` crescent gets read as a `circle` or `banana`.
+Full per-class recall and confusion matrices are written to
+`model/training_artifacts/evaluation/` on every run.
+
 ## Supported classes
 
 <details>
